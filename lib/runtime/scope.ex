@@ -36,7 +36,7 @@ defmodule Abacus.Runtime.Scope do
   }
   ```
   """
-  @type key :: String.t | atom
+  @type key :: String.t() | atom
   @type index :: integer
   @spec get_in(nil, key | index, map) :: nil
   @spec get_in(map, key, map) :: nil | term
@@ -44,10 +44,12 @@ defmodule Abacus.Runtime.Scope do
   @spec get_in(list, key, map) :: nil | term
   def get_in(subject, key_or_index, var_lookup \\ %{})
   def get_in(nil, _, _), do: nil
+
   def get_in(subject, key, lookup) when is_atom(key) do
     key = Map.get(lookup, key, to_string(key))
     get_in(subject, key, lookup)
   end
+
   def get_in(subject, key, _) when (is_map(subject) or is_list(subject)) and is_binary(key) do
     Enum.reduce_while(subject, nil, fn {k, v}, _ ->
       case to_string(k) do
@@ -56,6 +58,7 @@ defmodule Abacus.Runtime.Scope do
       end
     end)
   end
+
   def get_in(list, index, _) when is_list(list) and is_integer(index) and index >= 0 do
     Enum.at(list, index, nil)
   end
@@ -65,15 +68,18 @@ defmodule Abacus.Runtime.Scope do
   """
   def prepare_scope(scope, lookup) when is_map(scope) or is_list(scope) do
     scope = Map.merge(default_scope(), Enum.into(scope, %{}))
+
     Enum.map(scope, fn
       {k, v} ->
         case Map.get(lookup, to_string(k)) do
           nil ->
             # will not be used anyway
             {k, v}
+
           varname ->
             {varname, v}
         end
+
       v ->
         v
     end)
@@ -82,6 +88,7 @@ defmodule Abacus.Runtime.Scope do
       _ -> true
     end)
   end
+
   def prepare_scope(primitive, _), do: primitive
 
   @math_funs_1 ~w[

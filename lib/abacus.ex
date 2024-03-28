@@ -53,12 +53,15 @@ defmodule Abacus do
 
   If `expr` is a string, it will be parsed first.
   """
-  @spec eval(expr::tuple | charlist | String.t) :: {:ok, result::number} | {:error, error::map}
-  @spec eval(expr::tuple | charlist | String.t, scope::map) :: {:ok, result::number} | {:error, error::map}
+  @spec eval(expr :: tuple | charlist | String.t()) ::
+          {:ok, result :: number} | {:error, error :: map}
+  @spec eval(expr :: tuple | charlist | String.t(), scope :: map) ::
+          {:ok, result :: number} | {:error, error :: map}
 
-  @spec eval!(expr::tuple | charlist | String.t) :: result::number
-  @spec eval!(expr::tuple | charlist | String.t, scope::map) :: result::number
+  @spec eval!(expr :: tuple | charlist | String.t()) :: result :: number
+  @spec eval!(expr :: tuple | charlist | String.t(), scope :: map) :: result :: number
   def eval(source, scope \\ [], vars \\ %{})
+
   def eval(source, scope, _vars) when is_binary(source) or is_bitstring(source) do
     with {:ok, ast, vars} <- compile(source) do
       eval(ast, scope, vars)
@@ -67,8 +70,9 @@ defmodule Abacus do
 
   def eval(expr, scope, vars) do
     scope = Abacus.Runtime.Scope.prepare_scope(scope, vars)
+
     try do
-       case Code.eval_quoted(expr, scope) do
+      case Code.eval_quoted(expr, scope) do
         {result, _} -> {:ok, result}
       end
     rescue
@@ -105,18 +109,20 @@ defmodule Abacus do
     |> String.to_charlist()
     |> compile()
   end
+
   def compile(source) when is_list(source) do
     with _ = Process.put(:variables, %{}),
-        {:ok, tokens, _} <- :math_term.string(source),
-        {:ok, ast} <- :new_parser.parse(tokens) do
-          vars = Process.get(:variables)
-          ast = Abacus.Compile.post_compile(ast, vars)
-          Process.delete(:variables)
-          {:ok, ast, vars}
+         {:ok, tokens, _} <- :math_term.string(source),
+         {:ok, ast} <- :new_parser.parse(tokens) do
+      vars = Process.get(:variables)
+      ast = Abacus.Compile.post_compile(ast, vars)
+      Process.delete(:variables)
+      {:ok, ast, vars}
     end
   end
 
-  @spec format(expr :: tuple | String.t | charlist) :: {:ok, String.t} | {:error, error::map}
+  @spec format(expr :: tuple | String.t() | charlist) ::
+          {:ok, String.t()} | {:error, error :: map}
   @doc """
   Pretty-prints the given expression.
 
@@ -126,7 +132,9 @@ defmodule Abacus do
     case compile(expr) do
       {:ok, expr, _vars} ->
         format(expr)
-      {:error, _} = error -> error
+
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -136,5 +144,21 @@ defmodule Abacus do
     rescue
       error -> {:error, error}
     end
+  end
+
+  def parse(string) do
+    {:ok, tokens} = lex(string)
+    :math_term_parser.parse(tokens)
+  end
+
+  defp lex(string) when is_binary(string) do
+    string
+    |> String.to_charlist()
+    |> lex
+  end
+
+  defp lex(string) do
+    {:ok, tokens, _} = :math_term.string(string)
+    {:ok, tokens}
   end
 end
